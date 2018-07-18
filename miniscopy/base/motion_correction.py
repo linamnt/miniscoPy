@@ -41,7 +41,7 @@ Copyright (C) 2011, the scikit-image team
 import numpy as np
 import cv2
 import itertools
-from . import sima_functions as sima 
+from . import sima_functions as sima
 import warnings
 import pandas as pd
 import re
@@ -96,21 +96,21 @@ def get_vector_field_image (folder_name,shift_appli, parameters):
         filtered_template = low_pass_filter_space(template[xs:xe,ys:ye].copy(), parameters['filter_size_patch'])
         shifts_patch[i], error, phasediff = register_translation(filtered_template, filtered_image, parameters['upsample_factor'],"real",None,None, parameters['max_shifts']) #coordinate given back in order Y,X
     shift_img_x     = shifts_patch[:,0].reshape(pdims)
-    shift_img_y     = shifts_patch[:,1].reshape(pdims) 
+    shift_img_y     = shifts_patch[:,1].reshape(pdims)
     new_overlaps    = parameters['overlaps']
     new_strides     = tuple(np.round(np.divide(parameters['strides'], parameters['upsample_factor_grid'])).astype(np.int))
     upsamp_patches_index, upsamp_wdims, upsamp_pdims = get_patches_position(dims, new_strides, new_overlaps)
     shift_img_x     = cv2.resize(shift_img_x, (upsamp_pdims[1],upsamp_pdims[0]), interpolation = cv2.INTER_CUBIC)
     shift_img_y     = cv2.resize(shift_img_y, (upsamp_pdims[1],upsamp_pdims[0]), interpolation = cv2.INTER_CUBIC)
     X,Y,U,V,Xp,Yp = vector_field(shift_img_x,shift_img_y,new_strides,upsamp_wdims,upsamp_pdims,dims)
-    
+
     return (image,X, Y, U, V,Xp,Yp,rect,dims)
 
 def vector_field (matrix_X, matrix_Y,strides,wdims,pdims,dims):
     """
     Creat a vector field from 2 matrix of coordinates
-    
-    parameters : 
+
+    parameters :
     -matrix_X = matrix of height coordinates of the vector field
     -matrix_Y = matrix of weight coordinates of the vector field
     -strides = np.array, (top,left) coordinates of each patch
@@ -130,10 +130,10 @@ def vector_field (matrix_X, matrix_Y,strides,wdims,pdims,dims):
     U_flat= np.ravel(matrix_Y.copy())
     V_flat = np.ravel(matrix_X.copy())
     xp = np.zeros(U_flat.shape)
-    yp = np.zeros(V_flat.shape) 
+    yp = np.zeros(V_flat.shape)
     xp.fill(np.nan)
     yp.fill(np.nan)
-    for i, uf in enumerate(U_flat): 
+    for i, uf in enumerate(U_flat):
         if uf == 0 and V_flat[i] == 0 : # if there is no shift
             U_flat[i] = None
             V_flat[i] = None
@@ -148,24 +148,24 @@ def vector_field (matrix_X, matrix_Y,strides,wdims,pdims,dims):
     return (X,Y,U,V,Xp,Yp)
 
 def join_patches(image,max_shear,upsamp_wdims,new_overlaps,upsamp_pdims,upsamp_patches_index,patch_pos,total_shifts,new_upsamp_patches):
-    
+
     normalizer      = np.zeros_like(image)*np.nan
     new_image = image.copy()
 
     if max_shear < 0.5:
         np.seterr(divide='ignore')
         # create weight matrix for blending
-        # different from original.    
-        tmp             = np.ones(upsamp_wdims)    
+        # different from original.
+        tmp             = np.ones(upsamp_wdims)
         tmp[:new_overlaps[0], :] = np.linspace(0, 1, new_overlaps[0])[:, None]
         tmp             = tmp*np.flip(tmp, 0)
-        tmp2             = np.ones(upsamp_wdims)    
+        tmp2             = np.ones(upsamp_wdims)
         tmp2[:, :new_overlaps[1]] = np.linspace(0, 1, new_overlaps[1])[None, :]
         tmp2            = tmp2*np.flip(tmp2, 1)
         blending_func   = tmp*tmp2
         border          = tuple(itertools.product(np.arange(upsamp_pdims[0]),np.arange(upsamp_wdims[0])))
         for i, patch_pos in enumerate(upsamp_patches_index):
-            xs, xe, ys, ye = (patch_pos[0],patch_pos[0]+upsamp_wdims[0],patch_pos[1],patch_pos[1]+upsamp_wdims[1])        
+            xs, xe, ys, ye = (patch_pos[0],patch_pos[0]+upsamp_wdims[0],patch_pos[1],patch_pos[1]+upsamp_wdims[1])
             ye = np.minimum(ye, new_image.shape[1])
             xe = np.minimum(xe, new_image.shape[0])
             prev_val_1  = normalizer[xs:xe,ys:ye]
@@ -175,7 +175,7 @@ def join_patches(image,max_shear,upsamp_wdims,new_overlaps,upsamp_pdims,upsamp_p
             tmp2 = blending_func[xs-patch_pos[0]:xe-patch_pos[0],ys-patch_pos[1]:ye-patch_pos[1]]
 
             if xs == 0 or ys == 0 or xe == new_image.shape[0] or ye == new_image.shape[1]:
-                normalizer[xs:xe,ys:ye] = np.nansum(np.dstack([~np.isnan(tmp)*1*np.ones_like(tmp2), prev_val_1]),-1)                    
+                normalizer[xs:xe,ys:ye] = np.nansum(np.dstack([~np.isnan(tmp)*1*np.ones_like(tmp2), prev_val_1]),-1)
                 new_image[xs:xe,ys:ye] = np.nansum(np.dstack([tmp*np.ones_like(tmp2), prev_val]),-1)
             else:
                 normalizer[xs:xe,ys:ye] = np.nansum(np.dstack([~np.isnan(tmp)*1*tmp2, prev_val_1]),-1)
@@ -186,65 +186,65 @@ def join_patches(image,max_shear,upsamp_wdims,new_overlaps,upsamp_pdims,upsamp_p
     else:
 
         half_overlap_x = np.int(new_overlaps[0] / 2)
-        half_overlap_y = np.int(new_overlaps[1] / 2)        
+        half_overlap_y = np.int(new_overlaps[1] / 2)
         for i, patch_pos in enumerate(upsamp_patches_index):
-            if total_shifts[i].sum() != 0.0 : 
+            if total_shifts[i].sum() != 0.0 :
                 if patch_pos[0] == 0 and patch_pos[1] == 0:
                     xs = patch_pos[0]
                     xe = patch_pos[0]+upsamp_wdims[0]-half_overlap_x
                     ys = patch_pos[1]
-                    ye = patch_pos[1]+upsamp_wdims[1]-half_overlap_y            
+                    ye = patch_pos[1]+upsamp_wdims[1]-half_overlap_y
                 elif patch_pos[0] == 0:
                     xs = patch_pos[0]
                     xe = patch_pos[0]+upsamp_wdims[0]-half_overlap_x
                     ys = patch_pos[1]+half_overlap_y
-                    ye = patch_pos[1]+upsamp_wdims[1]-half_overlap_y                
+                    ye = patch_pos[1]+upsamp_wdims[1]-half_overlap_y
                     ye = np.minimum(ye, new_image.shape[1])
                 elif patch_pos[1] == 0:
                     xs = patch_pos[0]+half_overlap_x
                     xe = patch_pos[0]+upsamp_wdims[0]-half_overlap_x
                     xe = np.minimum(xe, new_image.shape[0])
                     ys = patch_pos[1]
-                    ye = patch_pos[1]+upsamp_wdims[1]-half_overlap_y                                
+                    ye = patch_pos[1]+upsamp_wdims[1]-half_overlap_y
                 else:
                     xs = patch_pos[0]+half_overlap_x
                     xe = patch_pos[0]+upsamp_wdims[0]-half_overlap_x
                     xe = np.minimum(xe, new_image.shape[0])
                     ys = patch_pos[1]+half_overlap_y
-                    ye = patch_pos[1]+upsamp_wdims[1]-half_overlap_y                                
+                    ye = patch_pos[1]+upsamp_wdims[1]-half_overlap_y
                     ye = np.minimum(ye, new_image.shape[1])
                 new_image[xs:xe,ys:ye] = new_upsamp_patches[i,xs-patch_pos[0]:xe-patch_pos[0],ys-patch_pos[1]:ye-patch_pos[1]]
-    
+
     return(new_image)
 
 
 
 def get_max_fluo(img, parameters) :
-    """ Return the position and value of the maximum of fluorescence of an image 
-    
-    Parameters : 
-    -img : ndarray, the image where you want to detect the fluorescence 
-    
-    Returns : 
-    -max_fluo : tuple, position of the maximum of fluorescence 
+    """ Return the position and value of the maximum of fluorescence of an image
+
+    Parameters :
+    -img : ndarray, the image where you want to detect the fluorescence
+
+    Returns :
+    -max_fluo : tuple, position of the maximum of fluorescence
     -mf : float,  value of the maximum of fluorescence"""
 
     filtered_img = low_pass_filter_space(img.copy(), parameters['filter_size_patch'])
     mf = cv2.minMaxLoc(filtered_img)[1] # Value of the maximum of fluo
     max_fluo = cv2.minMaxLoc(filtered_img)[3] # Position of the maximum of fluo (w,h)
-    max_fluo = max_fluo[::-1] # (h,w) 
+    max_fluo = max_fluo[::-1] # (h,w)
 
-    
-    return max_fluo, mf 
+
+    return max_fluo, mf
 
 def low_pass_filter_space(img_orig, filter_size):
     """ Filter a 2D image
 
-    Parameters : 
+    Parameters :
     -img_orig : ndarray, the original image.
     -filter_size : the size of the gaussian kernel to filter the whole field of view.
-    
-    Return : 
+
+    Return :
     - filtered image"""
 
     gSig_filt = (filter_size,filter_size)
@@ -260,10 +260,10 @@ def low_pass_filter_space(img_orig, filter_size):
 
 def get_video_info(files):
     """ In order to get the name, duration, start and end of each video
-    
+
     Parameters:
     -files : the pathe where ther is all the video (.avi)
-    
+
     Returns:
     -videos : dictionnary of the videos from the miniscopes
     -video_info : DataFrame of informations about the video
@@ -272,10 +272,10 @@ def get_video_info(files):
     video_info  = pd.DataFrame(index = np.arange(len(files)), columns = ['file_name', 'start', 'end', 'duration'])
     videos      = dict.fromkeys(files) # dictionnary creation
     for f in files:
-        num                                 = int(re.findall(r'\d+', f)[-1])-1 
+        num                                 = int(re.findall(r'\d+', f)[-1])-1
         video_info.loc[num,'file_name']     = f
         video                               = av.open(f)
-        stream                              = next(s for s in video.streams if s.type == 'video') 
+        stream                              = next(s for s in video.streams if s.type == 'video')
         video_info.loc[num, 'duration']     = stream.duration
         videos[f]                           = video
 
@@ -290,11 +290,11 @@ def get_video_info(files):
 def get_hdf_file(videos, video_info, dims, save_original, **kwargs):
     """
     In order to convert the video into a HDF5 file.
-    Parameters : 
+    Parameters :
     -videos : dictionnary of the videos from the miniscopes
     -video_info : DataFrame of informations about the video
     -dims : dimension (h,w) of each frame
-    
+
     Returns :
     -file : HDF5 file"""
 
@@ -305,34 +305,34 @@ def get_hdf_file(videos, video_info, dims, save_original, **kwargs):
         original = file.create_dataset('original', shape = (video_info['duration'].sum(), np.prod(dims)), dtype = np.float32, chunks=True)
     for v in tqdm(videos.keys()):
         offset  = int(video_info['start'].xs(v, level=1))
-        stream  = next(s for s in videos[v].streams if s.type == 'video')        
+        stream  = next(s for s in videos[v].streams if s.type == 'video')
         tmp     = np.zeros((video_info['duration'].xs(v, level=1).values[0], np.prod(dims)), dtype=np.float32)
         for i, packet in enumerate(videos[v].demux(stream)):
-            frame           = packet.decode_one().to_nd_array(format = 'bgr24')[:,:,0].astype(np.float32)       
+            frame           = packet.decode_one().to_nd_array(format = 'bgr24')[:,:,0].astype(np.float32)
             tmp[i]          = frame.reshape(np.prod(dims))
-            if i+1 == stream.duration : break                        
-            
+            if i+1 == stream.duration : break
+
         movie[offset:offset+len(tmp),:] = tmp[:]
         if save_original:
             original[offset:offset+len(tmp),:] = tmp[:]
         del tmp
     if save_original:
         del original
-    del movie 
+    del movie
 
     file.attrs['folder'] = os.path.split(video_info.index.get_level_values(1)[0])[0]
     file.attrs['filename'] = hdf_mov
     return file
 
 def get_template(movie, dims, start = 0, duration = 1):
-    if np.isnan(movie[start:start+duration]).sum(): 
+    if np.isnan(movie[start:start+duration]).sum():
         template     = np.nanmedian(movie[start:start+duration], axis = 0).reshape(dims)
     else :
         template     = np.median(movie[start:start+duration], axis = 0).reshape(dims)
     return template
 
 def get_patches_position(dims, strides, overlaps, **kwargs):
-    ''' Return a matrix of the position of each patches without overlapping, the dimension of each patch and the dimension of this matrix 
+    ''' Return a matrix of the position of each patches without overlapping, the dimension of each patch and the dimension of this matrix
 
     Positional arguments :
     -dims : dimension of the template image
@@ -344,25 +344,25 @@ def get_patches_position(dims, strides, overlaps, **kwargs):
     height_pos  = np.arange(0, dims[0], strides[0])
     width_pos   = np.arange(0, dims[1], strides[1])
     patches_index = np.atleast_3d(np.meshgrid(height_pos, width_pos, indexing = 'ij'))
-    pdims       = patches_index.shape[1:] #dimension of the patches index 
+    pdims       = patches_index.shape[1:] #dimension of the patches index
     return patches_index.reshape(patches_index.shape[0], np.prod(patches_index.shape[1:])).transpose(), wdims, pdims
 
 def apply_shift_iteration(img, shift, border_nan=False, border_type=cv2.BORDER_REFLECT):
     """Applied an affine transformation to an image
-    
+
     Parameters:
     -img : ndarray, image to be transformed
     -shift: ndarray, (h,w), the shift to be applied to the original image
     -border_nan : how to deal with the borders
-    -border_type : pixel extrapolation method 
-    
+    -border_type : pixel extrapolation method
+
     Returns:
     - img : ndarray, image transformed"""
 
 
     sh_x_n, sh_y_n = shift
     w_i, h_i = img.shape
-    M = np.float32([[1, 0, sh_y_n], [0, 1, sh_x_n]])    
+    M = np.float32([[1, 0, sh_y_n], [0, 1, sh_x_n]])
     min_, max_ = np.min(img), np.max(img)
     img = np.clip(cv2.warpAffine(img, M, (h_i, w_i), flags = cv2.INTER_CUBIC, borderMode=cv2.BORDER_REFLECT), min_, max_)
     if border_nan:
@@ -385,9 +385,9 @@ def tile_and_correct(image, template, dims, parameters):
         1) dividing the FOV in patches
         2) motion correcting each patch separately
         3) upsampling the motion correction vector field
-        4) stiching back together the corrected subpatches"""            
-        
-    image           = image.reshape(dims)    
+        4) stiching back together the corrected subpatches"""
+
+    image           = image.reshape(dims)
     template_uncrop = template.copy()
     template        = template.reshape(dims)
 
@@ -402,12 +402,12 @@ def tile_and_correct(image, template, dims, parameters):
         filtered_template = low_pass_filter_space(template[xs:xe,ys:ye].copy(), parameters['filter_size_patch'])
         shifts_patch[i], error, phasediff = register_translation(filtered_template, filtered_image, parameters['upsample_factor'],"real",None,None, parameters['max_shifts']) #coordinate given back in order Y,X
 
-    # create a vector field    
+    # create a vector field
     shift_img_x     = shifts_patch[:,0].reshape(pdims)
-    shift_img_y     = shifts_patch[:,1].reshape(pdims) 
+    shift_img_y     = shifts_patch[:,1].reshape(pdims)
 
 
-    # upsampling 
+    # upsampling
     new_overlaps    = parameters['overlaps']
     new_strides     = tuple(np.round(np.divide(parameters['strides'], parameters['upsample_factor_grid'])).astype(np.int))
     upsamp_patches_index, upsamp_wdims, upsamp_pdims = get_patches_position(dims, new_strides, new_overlaps)
@@ -432,19 +432,19 @@ def tile_and_correct(image, template, dims, parameters):
             U_flat[i] = None
             V_flat[i] = None
 
-        
+
     U = U_flat.reshape(upsamp_pdims)
     V = V_flat.reshape(upsamp_pdims)
 
     #apply shift iteration
     num_tiles           = np.prod(upsamp_pdims) #number of patches
-    max_shear           = np.percentile([np.max(np.abs(np.diff(ssshh, axis=xxsss))) for ssshh, xxsss in itertools.product([shift_img_x, shift_img_y], [0, 1])], 75)    
+    max_shear           = np.percentile([np.max(np.abs(np.diff(ssshh, axis=xxsss))) for ssshh, xxsss in itertools.product([shift_img_x, shift_img_y], [0, 1])], 75)
     total_shifts        = np.vstack((shift_img_x.flatten(),shift_img_y.flatten())).transpose()
     new_upsamp_patches  = np.ones((num_tiles, upsamp_wdims[0], upsamp_wdims[1]))*np.inf
     for i, patch_pos in enumerate(upsamp_patches_index):
         xs, xe, ys, ye  = (patch_pos[0],np.minimum(patch_pos[0]+upsamp_wdims[0],dims[0]-1),patch_pos[1],np.minimum(patch_pos[1]+upsamp_wdims[1],dims[1]-1))
         patch           = image[xs:xe,ys:ye]
-        if total_shifts[i].sum():#where there is a shift                        
+        if total_shifts[i].sum():#where there is a shift
             new_upsamp_patches[i,0:patch.shape[0],0:patch.shape[1]] = apply_shift_iteration(patch.copy(), total_shifts[i], border_nan = True)
         else:
             new_upsamp_patches[i,0:patch.shape[0],0:patch.shape[1]] = patch.copy()
@@ -453,20 +453,20 @@ def tile_and_correct(image, template, dims, parameters):
     normalizer      = np.zeros_like(image)*np.nan
     new_image       = np.copy(image)
     med             = np.median(new_image)
-    if max_shear < 0.5:                
+    if max_shear < 0.5:
         np.seterr(divide='ignore')
         # create weight matrix for blending
-        # different from original.    
-        tmp             = np.ones(upsamp_wdims)    
+        # different from original.
+        tmp             = np.ones(upsamp_wdims)
         tmp[:new_overlaps[0], :] = np.linspace(0, 1, new_overlaps[0])[:, None]
         tmp             = tmp*np.flip(tmp, 0)
-        tmp2             = np.ones(upsamp_wdims)    
+        tmp2             = np.ones(upsamp_wdims)
         tmp2[:, :new_overlaps[1]] = np.linspace(0, 1, new_overlaps[1])[None, :]
         tmp2            = tmp2*np.flip(tmp2, 1)
         blending_func   = tmp*tmp2
         border          = tuple(itertools.product(np.arange(upsamp_pdims[0]),np.arange(upsamp_wdims[0])))
         for i, patch_pos in enumerate(upsamp_patches_index):
-            xs, xe, ys, ye = (patch_pos[0],patch_pos[0]+upsamp_wdims[0],patch_pos[1],patch_pos[1]+upsamp_wdims[1])        
+            xs, xe, ys, ye = (patch_pos[0],patch_pos[0]+upsamp_wdims[0],patch_pos[1],patch_pos[1]+upsamp_wdims[1])
             ye = np.minimum(ye, new_image.shape[1])
             xe = np.minimum(xe, new_image.shape[0])
             prev_val_1  = normalizer[xs:xe,ys:ye]
@@ -483,34 +483,34 @@ def tile_and_correct(image, template, dims, parameters):
                 new_image[xs:xe,ys:ye] = np.nansum(np.dstack([tmp*tmp2, prev_val]),-1)
 
         new_image = new_image/normalizer
-    else:        
+    else:
         half_overlap_x = np.int(new_overlaps[0] / 2)
-        half_overlap_y = np.int(new_overlaps[1] / 2)        
+        half_overlap_y = np.int(new_overlaps[1] / 2)
         for i, patch_pos in enumerate(upsamp_patches_index):
             if total_shifts[i].sum() != 0.0 :
                 if patch_pos[0] == 0 and patch_pos[1] == 0:
                     xs = patch_pos[0]
                     xe = patch_pos[0]+upsamp_wdims[0]-half_overlap_x
                     ys = patch_pos[1]
-                    ye = patch_pos[1]+upsamp_wdims[1]-half_overlap_y            
+                    ye = patch_pos[1]+upsamp_wdims[1]-half_overlap_y
                 elif patch_pos[0] == 0:
                     xs = patch_pos[0]
                     xe = patch_pos[0]+upsamp_wdims[0]-half_overlap_x
                     ys = patch_pos[1]+half_overlap_y
-                    ye = patch_pos[1]+upsamp_wdims[1]-half_overlap_y                
+                    ye = patch_pos[1]+upsamp_wdims[1]-half_overlap_y
                     ye = np.minimum(ye, new_image.shape[1])
                 elif patch_pos[1] == 0:
                     xs = patch_pos[0]+half_overlap_x
                     xe = patch_pos[0]+upsamp_wdims[0]-half_overlap_x
                     xe = np.minimum(xe, new_image.shape[0])
                     ys = patch_pos[1]
-                    ye = patch_pos[1]+upsamp_wdims[1]-half_overlap_y                                
+                    ye = patch_pos[1]+upsamp_wdims[1]-half_overlap_y
                 else:
                     xs = patch_pos[0]+half_overlap_x
                     xe = patch_pos[0]+upsamp_wdims[0]-half_overlap_x
                     xe = np.minimum(xe, new_image.shape[0])
                     ys = patch_pos[1]+half_overlap_y
-                    ye = patch_pos[1]+upsamp_wdims[1]-half_overlap_y                                
+                    ye = patch_pos[1]+upsamp_wdims[1]-half_overlap_y
                     ye = np.minimum(ye, new_image.shape[1])
                 new_patch = new_upsamp_patches[i,xs-patch_pos[0]:xe-patch_pos[0],ys-patch_pos[1]:ye-patch_pos[1]]
                 new_patch[np.isinf(new_patch)] = np.nan
@@ -521,61 +521,61 @@ def tile_and_correct(image, template, dims, parameters):
                     with warnings.catch_warnings():
                         warnings.simplefilter("ignore", category=RuntimeWarning)
                         new_patch[np.isnan(new_patch)] = np.nanmedian(new_patch)
-            
+
                 new_image[xs:xe,ys:ye] = new_patch
- 
+
     if np.isinf(new_image).any(): new_image[np.isinf(new_image)] = np.nanmedian(new_image)
 
     return new_image.flatten()
 
 def global_correct(image, template, dims, parameters):
-    """ 
+    """
         Do a global correction of the image """
 
     max_dev = parameters['max_deviation_rigid']
-    
-    image           = image.reshape(dims)    
+
+    image           = image.reshape(dims)
     template_uncrop = template.copy()
     template        = template_uncrop[max_dev:-max_dev,max_dev:-max_dev]
 
-    # filter the image and the template with a large filter 
+    # filter the image and the template with a large filter
     filtered_image = low_pass_filter_space(image.copy(), parameters['filter_size'])
     filtered_template = low_pass_filter_space(template.copy(), parameters['filter_size'])
 
-    # call opencv match template    
-    res = cv2.matchTemplate(filtered_image, filtered_template, cv2.TM_CCOEFF_NORMED)  
+    # call opencv match template
+    res = cv2.matchTemplate(filtered_image, filtered_template, cv2.TM_CCOEFF_NORMED)
     avg_metric = np.mean(res)
     top_left = cv2.minMaxLoc(res)[3] #get the maximum location
 
-    
+
     # FROM PYFLUO https://github.com/bensondaled/pyfluo
-    ## from here x and y are reversed in naming convention 
+    ## from here x and y are reversed in naming convention
     sh_y,sh_x = top_left
-    
+
     if (0 < top_left[1] < 2 * max_dev-1) and (0 < top_left[0] < 2 * max_dev-1):
         ms_h = ms_w = max_dev
-        # if max is internal, check for subpixel shift using gaussian peak registration        
-        log_xm1_y = np.log(res[sh_x-1,sh_y])          
-        log_xp1_y = np.log(res[sh_x+1,sh_y])             
-        log_x_ym1 = np.log(res[sh_x,sh_y-1])             
-        log_x_yp1 = np.log(res[sh_x,sh_y+1])             
+        # if max is internal, check for subpixel shift using gaussian peak registration
+        log_xm1_y = np.log(res[sh_x-1,sh_y])
+        log_xp1_y = np.log(res[sh_x+1,sh_y])
+        log_x_ym1 = np.log(res[sh_x,sh_y-1])
+        log_x_yp1 = np.log(res[sh_x,sh_y+1])
         four_log_xy = 4*np.log(res[sh_x,sh_y])
         sh_x_n = -(sh_x - ms_h + (log_xm1_y - log_xp1_y) / (2 * log_xm1_y - four_log_xy + 2 * log_xp1_y))
         sh_y_n = -(sh_y - ms_w + (log_x_ym1 - log_x_yp1) / (2 * log_x_ym1 - four_log_xy + 2 * log_x_yp1))
     else:
         sh_x_n = -(sh_x - max_dev)
-        sh_y_n = -(sh_y - max_dev)    
-    
+        sh_y_n = -(sh_y - max_dev)
+
     # apply shift using subpixels adjustement
     interpolation = cv2.INTER_LINEAR
     M   = np.float32([[1, 0, sh_y_n], [0, 1, sh_x_n]])
     min_, max_ = np.min(image), np.max(image)
-    new_image = cv2.warpAffine(image, M, dims[::-1], flags = interpolation, borderMode=cv2.BORDER_REFLECT) 
+    new_image = cv2.warpAffine(image, M, dims[::-1], flags = interpolation, borderMode=cv2.BORDER_REFLECT)
     new_image = np.clip(new_image, min_, max_)
 
-    return new_image.flatten()  
+    return new_image.flatten()
 
-def make_corrections(images, template, dims, parameters): 
+def make_corrections(images, template, dims, parameters):
     ''' Do a global and a loc correction of a cluster of images'''
 
     for i, img in enumerate(images):
@@ -584,16 +584,16 @@ def make_corrections(images, template, dims, parameters):
         images[i] = img_loc
     return images
 
-def map_function(procs, nb_splits, chunk_movie, template, dims, parameters): 
-    ''' Do multiprocessing'''    
+def map_function(procs, nb_splits, chunk_movie, template, dims, parameters):
+    ''' Do multiprocessing'''
 
     if procs is not None:
         pargs = zip(chunk_movie, [template]*nb_splits, [dims]*nb_splits, [parameters]*nb_splits)
         if 'multiprocessing' in str(type(procs)):
-            tmp = procs.starmap_async(make_corrections, pargs).get() 
+            tmp = procs.starmap_async(make_corrections, pargs).get()
         else:
-            tmp = procs.starmap_sync(make_corrections, pargs)            
-            procs.results.clear()                    
+            tmp = procs.starmap_sync(make_corrections, pargs)
+            procs.results.clear()
     else:
         tmp = list(map(make_corrections, chunk_movie, [template]*nb_splits, [dims]*nb_splits, [parameters]*nb_splits))
 
@@ -603,20 +603,29 @@ def map_function(procs, nb_splits, chunk_movie, template, dims, parameters):
 
 def normcorre(fnames, procs, parameters):
     """
-        see 
-        Pnevmatikakis, E.A., and Giovannucci A. (2017). 
-        NoRMCorre: An online algorithm for piecewise rigid motion correction of calcium imaging data. 
+        see
+        Pnevmatikakis, E.A., and Giovannucci A. (2017).
+        NoRMCorre: An online algorithm for piecewise rigid motion correction of calcium imaging data.
         Journal of Neuroscience Methods, 291:83-92
-        or 
+        or
         CaiMan github
     """
     #################################################################################################
-    # 1. Load every movies in only one file 
+    # 1. Load every movies in only one file
     #################################################################################################
     # files are sorted
-    video_info, videos, dims = get_video_info(fnames)
-    hdf_mov       = get_hdf_file(videos, video_info, dims, parameters['save_original'])
-    
+
+    # make sure fnames is a list
+    if type(fnames) == str:
+        fnames = [fnames]
+
+    # check if file extension is .avi or .hdf5/.h5
+    _, extension = os.path.splitext(fnames[0].lower())
+    if (extension == '.hdf5') | (extension == '.h5'):
+        hdf_mov = hd.File(fnames[0], 'r')
+    elif extension == '.avi':
+        video_info, videos, dims = get_video_info(fnames)
+        hdf_mov = get_hdf_file(videos, video_info, dims, parameters['save_original'])
     #################################################################################################
     # 2. Estimate template from first n frame
     #################################################################################################
@@ -624,22 +633,22 @@ def normcorre(fnames, procs, parameters):
 
     #################################################################################################
     # 3. run motion correction / update template
-    #################################################################################################    
-    duration    = video_info['duration'].sum()  
-    chunk_size  = hdf_mov['movie'].chunks[0] 
+    #################################################################################################
+    duration    = video_info['duration'].sum()
+    chunk_size  = hdf_mov['movie'].chunks[0]
     chunk_starts_glob = np.arange(0, duration, chunk_size)
-    nb_splits   = os.cpu_count() 
+    nb_splits   = os.cpu_count()
 
-    block_size = parameters['block_size'] 
+    block_size = parameters['block_size']
     coeff_euc = block_size//chunk_size # how many whole chunk there is in a block
     new_block = chunk_size*coeff_euc
-    block_starts = np.arange(0,duration,new_block) 
-  
-   
+    block_starts = np.arange(0,duration,new_block)
+
+
     for i in range(parameters['nb_round']): # loop on the movie
         for start_block in tqdm(block_starts): # for each block
             chunk_starts_loc = np.arange(start_block,start_block+new_block,chunk_size)
-            for start_chunk in chunk_starts_loc: # for each chunk                
+            for start_chunk in chunk_starts_loc: # for each chunk
                 chunk_movie = hdf_mov['movie'][start_chunk:start_chunk+chunk_size]
                 index = np.arange(chunk_movie.shape[0])
                 splits_index = np.array_split(index, nb_splits)
@@ -652,9 +661,9 @@ def normcorre(fnames, procs, parameters):
                 hdf_mov['movie'][start_chunk:start_chunk+chunk_size] = np.array(new_chunk_arr) #update of the chunk
                 # if np.isinf(new_chunk_arr).sum(): Pdb().set_trace()
 
-            template = get_template(hdf_mov['movie'], dims, start = start_block, duration = new_block) #update the template after each block 
-    
+            template = get_template(hdf_mov['movie'], dims, start = start_block, duration = new_block) #update the template after each block
+
     hdf_mov['movie'].attrs['dims'] = dims
-    hdf_mov['movie'].attrs['duration'] = duration 
+    hdf_mov['movie'].attrs['duration'] = duration
 
     return hdf_mov, video_info
